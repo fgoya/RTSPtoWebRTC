@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"golang.org/x/net/websocket"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"sort"
 	"time"
+
+	"golang.org/x/net/websocket"
 
 	"github.com/deepch/vdk/av"
 	"github.com/gin-gonic/gin"
@@ -229,14 +231,17 @@ func ws(ws *websocket.Conn) {
 		var request Request
 		err := websocket.JSON.Receive(ws, &request)
 		if err != nil {
-			log.Println("websocket.JSON.Receive", err)
+			if err != io.EOF {
+				log.Println("websocket.JSON.Receive", err)
+			}
 			return
 		}
 		switch request.Type {
 		case "mse":
 			go startMSE(ws, url)
 		case "webrtc":
-			go startWebRTC(ws, url, request.Sdp)
+			// go startWebRTC(ws, url, request.Sdp)
+			go (&WebRTCStreamer{WS: ws}).run(url, request.Sdp)
 		}
 	}
 }

@@ -8,6 +8,15 @@ import (
 )
 
 func main() {
+	// o, _ := os.Create("/tmp/webrtc.log")
+	// log.Default().SetOutput(o)
+
+	err := InitWebRTC(Config.GetWebRTCPortMin(), Config.GetWebRTCPortMax(), nil)
+	if err != nil {
+		log.Fatalln("could not initialize WebRTC:", err)
+		return
+	}
+
 	go serveHTTP()
 	go serveStreams()
 	sigs := make(chan os.Signal, 1)
