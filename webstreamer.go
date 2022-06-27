@@ -68,7 +68,16 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 		log.Println(err)
 		return
 	}
-	defer s.pc.Close()
+	var state webrtc.ICEConnectionState
+	defer func() {
+		err := s.pc.Close()
+		if err != nil {
+			log.Println("failed close ICE connection", err)
+		}
+		for state != webrtc.ICEConnectionStateClosed {
+			state = <-s.stateC
+		}
+	}()
 
 	promise, err := s.makeOffer(sdp)
 	if err != nil {
@@ -76,7 +85,6 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 		return
 	}
 
-	var state webrtc.ICEConnectionState
 	timeout := time.NewTimer(time.Second * 10)
 	defer timeout.Stop()
 	for {
@@ -235,9 +243,9 @@ func (s *WebRTCStreamer) setup(codecs []av.CodecData) error {
 		}
 	}
 
-	state := make(chan webrtc.ICEConnectionState)
+	stateC := make(chan webrtc.ICEConnectionState)
 	pc.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-		state <- connectionState
+		stateC <- connectionState
 		// element.status = connectionState
 		// if connectionState == webrtc.ICEConnectionStateDisconnected {
 		// 	element.Close()
@@ -249,7 +257,7 @@ func (s *WebRTCStreamer) setup(codecs []av.CodecData) error {
 	// 	})
 	// })
 	s.pc = pc
-	s.stateC = state
+	s.stateC = stateC
 	s.tracks = tracks
 	s.codecs = codecs
 
