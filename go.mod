@@ -9,6 +9,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/pion/interceptor v0.1.11
+	github.com/pion/rtp v1.7.13
 	github.com/pion/transport v0.13.1 // indirect
 	github.com/pion/webrtc/v3 v3.1.41
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
