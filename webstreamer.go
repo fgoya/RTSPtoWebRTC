@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/deepch/vdk/av"
 	"github.com/deepch/vdk/codec/h264parser"
@@ -85,13 +84,13 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 		return
 	}
 
-	timeout := time.NewTimer(time.Second * 10)
-	defer timeout.Stop()
+	// timeout := time.NewTimer(10 * time.Second)
+	// defer timeout.Stop()
 	for {
 		select {
-		case <-timeout.C:
-			log.Printf("timeout at WebRTC gather promise during offer/answer")
-			return
+		// case <-timeout.C:
+		// 	log.Printf("timeout at WebRTC gather promise during offer/answer")
+		// 	return
 		case state = <-s.stateC:
 			switch state {
 			case webrtc.ICEConnectionStateDisconnected, webrtc.ICEConnectionStateFailed:
@@ -101,9 +100,9 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 			continue
 		case <-promise:
 			//Connected
-			if !timeout.Stop() {
-				<-timeout.C
-			}
+			// if !timeout.Stop() {
+			// 	<-timeout.C
+			// }
 		}
 		break
 	}
@@ -116,7 +115,7 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 		// it might be better to do it at the original WS go routine,
 		// and launch the second go routine after signaling is done.
 		if err := s.WS.Close(); err != nil {
-			log.Println("failed close websocket:", err)
+			// log.Println("failed close websocket:", err)
 		}
 		return
 	}
@@ -126,28 +125,31 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 	defer Config.clDe(url, cid)
 
 	var start bool
-	timeout.Reset(10 * time.Second)
+	// timeout.Reset(10 * time.Second)
 	for {
 		switch state {
-		case webrtc.ICEConnectionStateNew, webrtc.ICEConnectionStateChecking:
+		case webrtc.ICEConnectionStateNew, webrtc.ICEConnectionStateChecking, webrtc.ICEConnectionStateDisconnected:
 			state = <-s.stateC
 			continue
-		case webrtc.ICEConnectionStateDisconnected, webrtc.ICEConnectionStateFailed:
+		case webrtc.ICEConnectionStateFailed:
+			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
 			log.Println("disconnected ICE connection")
 			return
 		case webrtc.ICEConnectionStateConnected, webrtc.ICEConnectionStateCompleted:
 			select {
 			case state = <-s.stateC:
 				continue
-			case <-timeout.C:
-				log.Println("noVideo")
-				return
+			// case <-timeout.C:
+			// 	log.Println("noVideo")
+			// 	return
 			case pck := <-ch:
 				if pck.IsKeyFrame {
-					if !timeout.Stop() {
-						<-timeout.C
-					}
-					timeout.Reset(10 * time.Second)
+					// if !timeout.Stop() {
+					// 	<-timeout.C
+					// }
+					// timeout.Reset(10 * time.Second)
 					start = true
 				}
 				if !start {
@@ -234,13 +236,24 @@ func (s *WebRTCStreamer) setup(codecs []av.CodecData) error {
 	}
 
 	for _, track := range tracks {
-		_, err = pc.AddTrack(track)
+		sender, err := pc.AddTrack(track)
 		if err != nil {
 			if err := pc.Close(); err != nil {
 				log.Println("failed close WebRTC peer connection: ", err)
 			}
 			return err
 		}
+		// Read incoming RTCP packets
+		// Before these packets are returned they are processed by interceptors. For things
+		// like NACK this needs to be called.
+		go func() {
+			buf := make([]byte, 1500)
+			for {
+				if _, _, err := sender.Read(buf); err != nil {
+					return
+				}
+			}
+		}()
 	}
 
 	stateC := make(chan webrtc.ICEConnectionState)
