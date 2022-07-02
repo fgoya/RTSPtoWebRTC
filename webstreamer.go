@@ -323,7 +323,7 @@ func (s *WebRTCStreamer) WritePacket(pkt *av.Packet) error {
 			naltype := nalu[0] & 0x1f
 			if naltype == 5 {
 				codec := c.(h264parser.CodecData)
-				err = track.WriteSample(media.Sample{Data: append([]byte{0, 0, 0, 1}, bytes.Join([][]byte{codec.SPS(), codec.PPS(), nalu}, []byte{0, 0, 0, 1})...), Duration: pkt.Duration})
+				err = track.WriteSample(media.Sample{Data: bytes.Join([][]byte{{}, codec.SPS(), codec.PPS(), nalu}, []byte{0, 0, 0, 1}), Duration: pkt.Duration})
 			} else if naltype == 1 {
 				err = track.WriteSample(media.Sample{Data: append([]byte{0, 0, 0, 1}, nalu...), Duration: pkt.Duration})
 			}
