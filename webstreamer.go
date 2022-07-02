@@ -78,7 +78,7 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 		}
 	}()
 
-	promise, err := s.makeOffer(sdp)
+	promise, err := s.gather(sdp)
 	if err != nil {
 		log.Println(err)
 		return
@@ -128,13 +128,10 @@ func (s *WebRTCStreamer) run(url, sdp string) {
 	// timeout.Reset(10 * time.Second)
 	for {
 		switch state {
-		case webrtc.ICEConnectionStateNew, webrtc.ICEConnectionStateChecking, webrtc.ICEConnectionStateDisconnected:
+		case webrtc.ICEConnectionStateNew, webrtc.ICEConnectionStateChecking:
 			state = <-s.stateC
 			continue
-		case webrtc.ICEConnectionStateFailed:
-			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+		case webrtc.ICEConnectionStateDisconnected, webrtc.ICEConnectionStateFailed:
 			log.Println("disconnected ICE connection")
 			return
 		case webrtc.ICEConnectionStateConnected, webrtc.ICEConnectionStateCompleted:
@@ -179,7 +176,7 @@ func (s *WebRTCStreamer) setup(codecs []av.CodecData) error {
 		if c.Type().IsVideo() {
 			if c.Type() == av.H264 {
 				track, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{
-					MimeType: "video/h264",
+					MimeType: webrtc.MimeTypeH264,
 				}, "pion-rtsp-video", "pion-rtsp-video")
 				if err != nil {
 					return err
@@ -277,7 +274,7 @@ func (s *WebRTCStreamer) setup(codecs []av.CodecData) error {
 	return nil
 }
 
-func (s *WebRTCStreamer) makeOffer(sdp string) (promise <-chan struct{}, err error) {
+func (s *WebRTCStreamer) gather(sdp string) (promise <-chan struct{}, err error) {
 	offer := webrtc.SessionDescription{
 		Type: webrtc.SDPTypeOffer,
 		SDP:  sdp,
