@@ -18,9 +18,9 @@ var Config = loadConfig()
 
 //ConfigST struct
 type ConfigST struct {
-	mutex   sync.RWMutex
-	Server  ServerST            `json:"server"`
-	Streams map[string]StreamST `json:"streams"`
+	mutex     sync.RWMutex
+	Server    ServerST            `json:"server"`
+	Streams   map[string]StreamST `json:"streams"`
 	LastError error
 }
 
@@ -154,6 +154,17 @@ func (element *ConfigST) coAd(suuid string, codecs []av.CodecData) {
 	element.mutex.Lock()
 	defer element.mutex.Unlock()
 	t := element.Streams[suuid]
+	t.Codecs = codecs
+	element.Streams[suuid] = t
+}
+
+func (element *ConfigST) coNilAd(suuid string, codecs []av.CodecData) {
+	element.mutex.Lock()
+	defer element.mutex.Unlock()
+	t := element.Streams[suuid]
+	if t.Codecs != nil {
+		return
+	}
 	t.Codecs = codecs
 	element.Streams[suuid] = t
 }

@@ -132,10 +132,9 @@ func (s *RTSPStream) setupCodec(p *rtsp.Player) error {
 		}
 	}
 
-	// TODO: My camera actually inform wrong SPS and PPS in sdp, so this
-	// actually is bad do it here, instead of when update SPS and PPS
 	if len(s.CodecData) > 0 {
-		Config.coAd(s.name, s.CodecData)
+		// My camera incorrect report SPS and PPS in SDP
+		Config.coNilAd(s.name, s.CodecData)
 	}
 
 	return nil
