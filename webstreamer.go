@@ -310,6 +310,7 @@ func (s *WebRTCStreamer) WritePacket(pkt *av.Packet) error {
 
 	// element.StreamACK.Reset(10 * time.Second)
 	if len(pkt.Data) < 5 {
+		log.Println("len(pkt.Data) < 5")
 		return nil
 	}
 	c := s.codecs[pkt.Idx]
@@ -321,7 +322,8 @@ func (s *WebRTCStreamer) WritePacket(pkt *av.Packet) error {
 			if naltype == 5 {
 				codec := c.(h264parser.CodecData)
 				err = track.WriteSample(media.Sample{Data: bytes.Join([][]byte{{}, codec.SPS(), codec.PPS(), nalu}, []byte{0, 0, 0, 1}), Duration: pkt.Duration})
-			} else if naltype == 1 {
+				// } else if naltype == 1 {
+			} else {
 				err = track.WriteSample(media.Sample{Data: append([]byte{0, 0, 0, 1}, nalu...), Duration: pkt.Duration})
 			}
 			if err != nil {
