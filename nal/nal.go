@@ -1,12 +1,14 @@
 package nal
 
-import "bytes"
+import (
+	"bytes"
+)
 
 // Same as binary.BigEndian.Uint32()
-// func next32(b []byte) uint32 {
-// 	_ = b[3] // bounds check hint to compiler; see golang.org/issue/14808
-// 	return uint32(b[3]) | uint32(b[2])<<8 | uint32(b[1])<<16 | uint32(b[0])<<24
-// }
+func next32(b []byte) uint32 {
+	_ = b[3] // bounds check hint to compiler; see golang.org/issue/14808
+	return uint32(b[3]) | uint32(b[2])<<8 | uint32(b[1])<<16 | uint32(b[0])<<24
+}
 
 // func next24(b []byte) uint32 {
 // 	_ = b[2] // bounds check hint to compiler; see golang.org/issue/14808
@@ -110,4 +112,37 @@ func AnnexBSplit(b []byte) (units []Unit, leading bool) {
 	// }
 
 	// return res
+}
+
+func AVCCSplit(b []byte) []Unit {
+
+	var units []Unit
+	for len(b) >= 4 {
+		n := next32(b)
+		b = b[4:]
+		if n == 0 || uint32(len(b)) < n {
+			break
+		}
+		units = append(units, b[:n])
+		b = b[n:]
+		if len(b) == 0 {
+			return units
+		}
+	}
+	return nil
+}
+
+func CompatibleSplit(b []byte, presume bool) []Unit {
+
+	units := AVCCSplit(b)
+	if len(units) > 0 {
+		return units
+	}
+
+	units, leading := AnnexBSplit(b)
+	if leading || presume {
+		return units
+	}
+
+	return []Unit{b}
 }
