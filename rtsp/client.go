@@ -116,7 +116,7 @@ RETRY:
 		if err := x.Close(); err != nil {
 			log.Printf("failed close %#v: %s", x, err)
 		}
-		return nil, fmt.Errorf("server sent mismatch data while waiting response data: %#v", x)
+		return nil, fmt.Errorf("server sent mismatch data while waiting %s response data: %v", method, x)
 	}
 
 	v, err := strconv.Atoi(resp.Header.Get("CSeq"))

@@ -133,7 +133,7 @@ func (s *RTSPStream) setupCodec(p *rtsp.Player) error {
 	}
 
 	if len(s.CodecData) > 0 {
-		// My camera incorrect report SPS and PPS in SDP
+		// Generic 720p 3xAntenna PTZ Yoosee: SPS and PPS incorrect in SDP
 		Config.coNilAd(s.name, s.CodecData)
 	}
 
@@ -262,6 +262,7 @@ func (s *RTSPStream) demuxH264(payload []byte, timestamp int64) (retmap []*av.Pa
 		log.Println("len(nalus) == 0 || len(nalus[0]) == 0")
 		return nil
 	}
+	// Generic 720p 3xAntenna PTZ Yoosee: doesn't send preceding 0x00000001, but always start with nal_unit_type=7
 	nalus = nal.CompatibleSplit(nalus[0], nalus[0].Type() == 7)
 	// if t := nalus[0].Type(); t == 7 || t == 9 {
 	// 	nalus, _ = nal.AnnexBSplit(nalus[0])
@@ -348,7 +349,7 @@ func (s *RTSPStream) demuxH264(payload []byte, timestamp int64) (retmap []*av.Pa
 				}
 				nalus := []nal.Unit{s.BufferRtpPacket.Bytes()}
 				s.BufferRtpPacket.Reset()
-				// RFC6184 seems to not allow Annex B, but my camera work like this
+				// Generic 720p 3xAntenna PTZ Yoosee: doesn't send preceding 0x00000001, but always start with nal_unit_type=7
 				if t := nalus[0].Type(); t == 7 || t == 9 {
 					nalus, _ = nal.AnnexBSplit(nalus[0])
 				}
@@ -382,58 +383,6 @@ func (s *RTSPStream) demuxH264(payload []byte, timestamp int64) (retmap []*av.Pa
 					}
 				}
 			}
-
-			// fuIndicator := p.Payload[0]
-			// fuHeader := p.Payload[1]
-			// isStart := fuHeader&0x80 != 0
-			// isEnd := fuHeader&0x40 != 0
-			// if isStart {
-			// 	s.fuStarted = true
-			// 	// s.BufferRtpPacket.Truncate(0)
-			// 	s.BufferRtpPacket.Reset()
-			// 	s.BufferRtpPacket.Write([]byte{fuIndicator&0xe0 | fuHeader&0x1f})
-			// }
-			// if s.fuStarted {
-			// 	s.BufferRtpPacket.Write(p.Payload[2:])
-			// 	if isEnd {
-			// 		s.fuStarted = false
-			// 		payload := s.BufferRtpPacket.Bytes()
-			// 		naluTypef := payload[0] & 0x1f
-			// 		if naluTypef == 7 || naluTypef == 9 {
-			// 			log.Println("naluTypef == 7 || naluTypef == 9")
-			// 			// bufered, _ := h264parser.SplitNALUs(append([]byte{0, 0, 0, 1}, s.BufferRtpPacket.Bytes()...))
-			// 			bufered := nal2.AnnexBSplit(payload)
-			// 			for _, v := range bufered {
-			// 				naluTypefs := v[0] & 0x1f
-			// 				switch {
-			// 				case naluTypefs == 5:
-			// 					// log.Println("naluTypefs == 5")
-			// 					s.BufferRtpPacket.Reset()
-			// 					s.BufferRtpPacket.Write(v)
-			// 					naluTypef = 5
-			// 				case naluTypefs == 7:
-			// 					// log.Println("naluTypefs == 7")
-			// 					// log.Println("SPS2", base64.StdEncoding.EncodeToString(v), v)
-			// 					s.CodecUpdateSPS(v)
-			// 				case naluTypefs == 8:
-			// 					// log.Println("naluTypefs == 8")
-			// 					// log.Println("PPS2", base64.StdEncoding.EncodeToString(v), v)
-			// 					s.CodecUpdatePPS(v)
-			// 				default:
-			// 					log.Println("28: Unsupported NAL Type", naluTypefs, len(bufered), naluTypef)
-			// 				}
-			// 			}
-			// 		}
-			// 		retmap = append(retmap, &av.Packet{
-			// 			Data:            binSize(s.BufferRtpPacket.Bytes()),
-			// 			CompositionTime: time.Duration(1) * time.Millisecond,
-			// 			Duration:        time.Duration(float32(int64(p.Timestamp)-s.PreVideoTS)/90) * time.Millisecond,
-			// 			Idx:             s.videoIDX,
-			// 			IsKeyFrame:      naluTypef == 5,
-			// 			Time:            time.Duration(p.Timestamp/90) * time.Millisecond,
-			// 		})
-			// 	}
-			// }
 		default:
 			log.Println("Unsupported NAL Type", nalu.Type())
 		}
