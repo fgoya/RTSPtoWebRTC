@@ -1,3 +1,19 @@
+This fork is for AlexxIT integration https://github.com/AlexxIT/WebRTC
+
+There is some reworked code trying to improve performance and coroutines handling
+
+Performance seems a bit better, but needs more testing
+
+CPU usage when no client is connected, seems to be dropped, again need more testing
+
+Plus, solved some issues with this kinda fault camera (HD PTZ Yoosee firmware: 25.0.0.63)
+
+![CameraYoosee image](doc/camera-yoosee.jpg)
+
+Would be nice make a PR, but I am not sure if the changes is still compatible with other cameras
+
+All credits for the original authors
+
 # RTSPtoWebRTC
 
 RTSP Stream to WebBrowser over WebRTC based on Pion
